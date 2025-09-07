@@ -1,3 +1,11 @@
+venv/
+___command_info/
+___convo_info/
+___workflow_contexts/
+
+# Run result artifacts
+results/**
+
 #Run result artifacts
 results/**
 
@@ -5,3 +13,4 @@ results/**
 __pycache__/
 *.py[cod]
 *.egg-info/
+examples/fastworkflow.passwords.env
