@@ -18,5 +18,6 @@ setup(
         "termcolor>=2.4.0",
         "numpy>=1.26.4",
         "litellm>=1.41.0",
+        "fastworkflow>=2.15.11"
     ],
 )

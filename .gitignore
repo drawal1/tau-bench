@@ -14,3 +14,11 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 examples/fastworkflow.passwords.env
+action_log.json
+.gitignore
+action.json
+USAGE_EXAMPLE.md
+.gitignore
+implementing_tau_bench_retail.md
+.vscode/launch.json
+run_tests_retail_workflow.py
