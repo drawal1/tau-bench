@@ -16,8 +16,6 @@ class SearchDirectFlight(Tool):
                     date in flight["dates"]
                     and flight["dates"][date]["status"] == "available"
                 ):
-                    #issues should be 
-                    # results add flight except dates, but add flight["dates"][date]
                     # results add flight except dates, but add flight["datas"][date]
                     results.append({k: v for k, v in flight.items() if k != "dates"})
                     results[-1].update(flight["dates"][date])

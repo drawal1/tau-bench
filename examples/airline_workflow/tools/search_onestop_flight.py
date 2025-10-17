@@ -40,9 +40,7 @@ class SearchOnestopFlight(Tool):
                                 result2 = {
                                     k: v for k, v in flight2.items() if k != "dates"
                                 }
-                                # issue should be 
-                                result2.update(flight2["dates"][date2])
-                                # result2.update(flight2["dates"][date])
+                                result2.update(flight2["dates"][date])
                                 result2["date"] = date2
                                 results.append([result1, result2])
         return json.dumps(results)
@@ -53,8 +51,6 @@ class SearchOnestopFlight(Tool):
             "type": "function",
             "function": {
                 "name": "search_onestop_flight",
-                # issue
-                # "description": "Search direct flights between two cities on a specific date.",
                 "description": "Search onestop flights between two cities on a specific date.",
                 "parameters": {
                     "type": "object",
