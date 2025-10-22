@@ -52,7 +52,7 @@ class ListAllAirports(Tool):
             "Philadelphia",
             "LaGuardia",
         ]
-        return json.dumps({airport: city for airport, city in zip(airports, cities)})
+        return json.dumps(dict(zip(airports, cities)))
 
     @staticmethod
     def get_info() -> Dict[str, Any]:
