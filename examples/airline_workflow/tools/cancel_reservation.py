@@ -16,15 +16,13 @@ class CancelReservation(Tool):
             return "Error: reservation not found"
         reservation = reservations[reservation_id]
 
-        # reverse the payment
-        refunds = []
-        for payment in reservation["payment_history"]:
-            refunds.append(
-                {
-                    "payment_id": payment["payment_id"],
-                    "amount": -payment["amount"],
-                }
-            )
+        refunds = [
+            {
+                "payment_id": payment["payment_id"],
+                "amount": -payment["amount"],
+            }
+            for payment in reservation["payment_history"]
+        ]
         reservation["payment_history"].extend(refunds)
         reservation["status"] = "cancelled"
         return json.dumps(reservation)
