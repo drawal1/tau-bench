@@ -98,30 +98,23 @@ class FastWorkflowAgentAdapter(Agent):
         self.temperature = temperature
         self.use_reasoning = use_reasoning
         
-        # Determine the environment type from the wiki content
-        env_type = "retail"  # Default to retail
-        if "airline" in wiki.lower():
-            env_type = "airline"
-        elif "retail" in wiki.lower():
-            env_type = "retail"
-        
-        # Find the appropriate workflow path
-        self.workflow_path = self._find_workflow_path(env_type)
+        # Find the retail workflow path
+        self.workflow_path = self._find_retail_workflow_path()
         
         logger.info(f"FastWorkflow adapter initialized with model {model} from {provider}")
-        logger.info(f"Using {env_type} workflow at: {self.workflow_path}")
+        logger.info(f"Using retail workflow at: {self.workflow_path}")
     
-    def _find_workflow_path(self, env_type: str) -> str:
-        """Find the path to the workflow based on environment type."""
+    def _find_retail_workflow_path(self) -> str:
+        """Find the path to the retail workflow."""
         current_dir = os.getcwd()
-        workflow_path = os.path.join(current_dir, "examples", f"{env_type}_workflow")
+        retail_workflow_path = os.path.join(current_dir, "examples", "retail_workflow")
         
-        if os.path.exists(workflow_path):
-            return workflow_path
+        if os.path.exists(retail_workflow_path):
+            return retail_workflow_path
         
         raise FileNotFoundError(
-            f"Could not find {env_type} workflow. Expected at: {workflow_path}. "
-            f"Run 'fastworkflow examples fetch {env_type}_workflow' to install it."
+            f"Could not find retail workflow. Expected at: {retail_workflow_path}. "
+            "Run 'fastworkflow examples fetch retail_workflow' to install it."
         )
     
     def _to_plain_kwargs(self, params: Any) -> Dict[str, Any]:
@@ -192,6 +185,7 @@ class FastWorkflowAgentAdapter(Agent):
         env: Env,
         max_drain: int,
         aggregated_response_texts: List[str],
+        conversation_messages: List[Dict[str, str]],
     ) -> Tuple[int, bool]:
         """Drain FastWorkflow's command_output_queue.
         For each agent output (question), generate a user reply via env.user and
@@ -223,6 +217,7 @@ class FastWorkflowAgentAdapter(Agent):
             # Stitch and record
             agent_text = "\n".join(agent_texts)
             aggregated_response_texts.append(agent_text)
+            conversation_messages.append({"role": "assistant", "content": agent_text})
 
             # Let Tau Bench user simulator respond
             res = env.step(
@@ -233,6 +228,7 @@ class FastWorkflowAgentAdapter(Agent):
             if isinstance(user_reply, str) and user_reply:
                 fastworkflow.chat_session.user_message_queue.put(user_reply)
                 aggregated_response_texts.append(user_reply)
+                conversation_messages.append({"role": "user", "content": user_reply})
             if getattr(res, "done", False):
                 done = True
                 break
@@ -242,7 +238,7 @@ class FastWorkflowAgentAdapter(Agent):
         self, 
         env: Env, 
         task_index: Optional[int] = None, 
-        max_num_steps: int = 200
+        max_num_steps: int = 2000
     ) -> SolveResult:
         """
         Solve a task using FastWorkflow's agent, consuming the command trace and outputs to step the Tau Bench env and user.
@@ -267,23 +263,22 @@ class FastWorkflowAgentAdapter(Agent):
             fastworkflow.chat_session = fastworkflow.ChatSession(run_as_agent=run_as_agent)
             logger.info("✅ Chat session created")
 
-            # Start workflow with the task instruction; keep_alive for interactive loops
-            initial_observation = env.tasks[task_index].instruction
-            # Reset the environment state
-            env.reset(task_index=task_index)
-            logger.info(f"🎯 Starting task {task_index}: {initial_observation}")
+            reset_response = env.reset(task_index=task_index)
+            initial_observation = reset_response.observation
+            logger.info(f"🎯 Starting task {task_index} with user message: {initial_observation}")
 
             fastworkflow.chat_session.start_workflow(
-                self.workflow_path, 
+                self.workflow_path,
                 workflow_context=None,
-                startup_command=initial_observation, 
-                startup_action=None, 
+                startup_command=initial_observation,
+                startup_action=None,
                 keep_alive=True,
                 project_folderpath=None
             )
 
             actions_executed: List[Dict[str, Any]] = []
             aggregated_response_texts: List[str] = []
+            conversation_messages: List[Dict[str, str]] = []
             steps_taken = 0
             done = False
 
@@ -306,6 +301,7 @@ class FastWorkflowAgentAdapter(Agent):
                     env,
                     max_drain=200,
                     aggregated_response_texts=aggregated_response_texts,
+                    conversation_messages=conversation_messages,
                 )
                 progressed += processed_out
                 if out_done:
@@ -334,14 +330,13 @@ class FastWorkflowAgentAdapter(Agent):
             reward_res = env.calculate_reward()
             reward = reward_res.reward
 
-            # Build messages summary (minimal)
-            combined_response = "\n".join(aggregated_response_texts).strip()
+            # Build messages with full conversation
             messages = [
-                {"role": "system", "content": self.wiki},
+                {"role": "system", "content": "FastWorkflow retail agent"},
                 {"role": "user", "content": initial_observation},
             ]
-            if combined_response:
-                messages.append({"role": "assistant", "content": combined_response})
+            # Add all conversation turns
+            messages.extend(conversation_messages)
 
             info: Dict[str, Any] = {
                 "task_index": task_index,
@@ -357,7 +352,7 @@ class FastWorkflowAgentAdapter(Agent):
             import traceback
             traceback.print_exc()
             fallback_messages = [
-                {"role": "system", "content": self.wiki},
+                {"role": "system", "content": "FastWorkflow retail agent"},
             ]
             return SolveResult(
                 reward=0.0,
