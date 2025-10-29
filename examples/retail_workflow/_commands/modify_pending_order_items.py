@@ -40,8 +40,8 @@ class Signature:
         payment_method_id: str = Field(
             default="NOT_FOUND",
             description="Payment method ID for price differences",
-            pattern=r"^((gift_card|credit_card)_\d+|NOT_FOUND)$",
-            examples=["gift_card_0000000", "credit_card_0000000"],
+            pattern=r"^((gift_card|credit_card|paypal)_\d+|NOT_FOUND)$",
+            examples=["gift_card_0000000", "credit_card_0000000", "paypal_0000000"],
             json_schema_extra={
                 "available_from": ["get_order_details", "get_user_details"]
             }
